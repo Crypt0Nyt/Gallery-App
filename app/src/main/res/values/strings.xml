@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">Gallery</string>
+    <string name="loading_image">Loading Image...</string>
+    <string name="image_loaded">Image Loaded successfully!</string>
+    <string name="image_load_failed">Image loading failed! : $1%s</string>
+    <string name="refresh">Refresh</string>
+    <string name="cliff">Cliff</string>
+    <string name="add_image">Add Image</string>
+    <string name="width">Width</string>
+    <string name="height">Height</string>
+    <string name="enter_image_dimensions">Enter image dimensions</string>
+    <string name="fetch_image">FETCH IMAGE</string>
+    <string name="fetching_random_image">Fetching random image...</string>
+    <string name="Labelhint">Label</string>
+    <string name="Palette_ColorTV">Choose a Palette color</string>
+    <string name="LabelTV">Choose a Label</string>
+    <string name="Update_and_add_from_Gallery">ADD</string>
+</resources>
