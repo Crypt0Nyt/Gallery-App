@@ -1,15 +1,24 @@
 package com.streamliners.dialog;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
+import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.target.CustomTarget;
+import com.bumptech.glide.request.transition.Transition;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.gson.Gson;
 import com.streamliners.dialog.databinding.ActivityGalleryBinding;
@@ -20,9 +29,13 @@ import java.util.List;
 
 public class GalleryActivity extends AppCompatActivity {
 
+    private static final int RESULT_LOAD_IMAGE = 0;
     ActivityGalleryBinding b;
     List<Item> items = new ArrayList<>();
     SharedPreferences prefs;
+    ItemCardBinding bindingToRemove;
+    private List<String> urls = new ArrayList<>();
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,8 +70,10 @@ public class GalleryActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (item.getItemId() == R.id.add_image){
             showAddImageDialog();
-
             return true;                                                    //return true signifies that we have handled this event.
+        }
+        if(item.getItemId() == R.id.addFromGallery){
+            addFromGallery();
         }
         return false;
     }
@@ -91,6 +106,12 @@ public class GalleryActivity extends AppCompatActivity {
                 });
     }
 
+    private void addFromGallery() {
+        Intent openGallery = new Intent(
+                Intent.ACTION_PICK,
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        startActivityForResult(openGallery, RESULT_LOAD_IMAGE);
+    }
 
     /**
      * To inflate view for the item
@@ -184,6 +205,38 @@ public class GalleryActivity extends AppCompatActivity {
                 .apply();
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable  Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(requestCode == RESULT_LOAD_IMAGE && resultCode == RESULT_OK && null!= data){
+            Uri selectedImage = data.getData();
+            String[] filePathColumn = { MediaStore.Images.Media.DATA };
+            Cursor cursor = getContentResolver().query(selectedImage, filePathColumn, null,null,null);
+            cursor.moveToFirst();
+            int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
+            String picturePath = cursor.getString(columnIndex);
+            cursor.close();
+            String uri = selectedImage.toString();
+
+            new AddFromDevice().show(this, uri, new AddFromDevice.OnCompleteListener() {
+                @Override
+                public void onAddCompleted(Item item) {
+                    items.add(item);
+                    inflateViewForItem(item);
+                    b.homeTextView.setVisibility(View.GONE);
+                }
+
+                @Override
+                public void onError(String error) {
+                    new MaterialAlertDialogBuilder(GalleryActivity.this)
+                            .setTitle("Error")
+                            .setMessage(error)
+                            .show();
+                }
+            });
+        }
+
+    }
 }
 
 
