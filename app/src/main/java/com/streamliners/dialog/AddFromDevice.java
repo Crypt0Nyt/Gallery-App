@@ -69,7 +69,6 @@ public class AddFromDevice {
         //Create and Show Dialog:
         dialog= new MaterialAlertDialogBuilder(context,R.style.CustomDialogTheme)
                 .setView(deviceBinding.getRoot())
-                .setCancelable(false)
                 .show();
 
         fetchImage(imageUrl);
@@ -105,7 +104,7 @@ public class AddFromDevice {
                                     OutputStream outputStream;
                                     try {
                                         outputStream = context.getContentResolver().openOutputStream(uri);
-                                        icon.compress(Bitmap.CompressFormat.JPEG, 200, outputStream);
+                                        icon.compress(Bitmap.CompressFormat.JPEG, 100, outputStream);
                                         outputStream.close();
                                     } catch (Exception e) {
                                         System.err.println(e.toString());
@@ -129,8 +128,51 @@ public class AddFromDevice {
         });
     }
 
+    public static Bitmap loadBitmapFromView(View v) {
+        Bitmap bitmap;
+        v.setDrawingCacheEnabled(true);
+        bitmap = Bitmap.createBitmap(v.getDrawingCache());
+        v.setDrawingCacheEnabled(false);
+        return bitmap;
+    }
 
-    private void fetchImage(String url) {
+/*
+    private void shareItem(){
+        deviceBinding.shareImgBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                Bitmap icon = loadBitmapFromView(b.List);
+
+                // Calling the intent to share the bitmap
+                Intent share = new Intent(Intent.ACTION_SEND);
+                share.setType("image/jpeg");
+
+                ContentValues values = new ContentValues();
+                values.put(MediaStore.Images.Media.TITLE, "title");
+                values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+                Uri uri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                        values);
+
+
+                OutputStream outputStream;
+                try {
+                    outputStream = getContentResolver().openOutputStream(uri);
+                    icon.compress(Bitmap.CompressFormat.JPEG, 100, outputStream);
+                    outputStream.close();
+                } catch (Exception e) {
+                    System.err.println(e.toString());
+                }
+
+                share.putExtra(Intent.EXTRA_STREAM, uri);
+                startActivity(Intent.createChooser(share, "Share Image"));
+            }
+        });
+*/
+
+
+
+        private void fetchImage(String url) {
 
         Glide.with(context)
                 .asBitmap()

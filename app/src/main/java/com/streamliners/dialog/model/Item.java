@@ -1,8 +1,5 @@
 package com.streamliners.dialog.model;
 
-
-import android.graphics.Bitmap;
-
 public class Item {
     public String url;
     public int color;
@@ -15,6 +12,4 @@ public class Item {
         this.label = label;
     }
 
-    public Item(Bitmap bitmapFromString, int anInt, String string) {
-    }
 }

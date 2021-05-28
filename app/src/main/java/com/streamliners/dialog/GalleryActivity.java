@@ -2,14 +2,13 @@ package com.streamliners.dialog;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-
 import android.annotation.SuppressLint;
+import android.content.ContentValues;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -17,13 +16,12 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import com.bumptech.glide.Glide;
-import com.bumptech.glide.request.target.CustomTarget;
-import com.bumptech.glide.request.transition.Transition;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.gson.Gson;
 import com.streamliners.dialog.databinding.ActivityGalleryBinding;
 import com.streamliners.dialog.databinding.ItemCardBinding;
 import com.streamliners.dialog.model.Item;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,16 +31,13 @@ public class GalleryActivity extends AppCompatActivity {
     ActivityGalleryBinding b;
     List<Item> items = new ArrayList<>();
     SharedPreferences prefs;
-    ItemCardBinding bindingToRemove;
-    private List<String> urls = new ArrayList<>();
-
+    ItemCardBinding itemBinding;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         b = ActivityGalleryBinding.inflate(getLayoutInflater());
         setContentView(b.getRoot());
-
 
         prefs = getPreferences(MODE_PRIVATE);
         getDataFromSharedPreferences();
@@ -94,6 +89,7 @@ public class GalleryActivity extends AppCompatActivity {
                     public void onImageAdded(Item item) {
                         items.add(item);
                         inflateViewForItem(item);
+                        shareItem();
                     }
 
                     @Override
@@ -120,22 +116,20 @@ public class GalleryActivity extends AppCompatActivity {
     private void inflateViewForItem(Item item) {
 
 //        Inflate Layout
-        ItemCardBinding binding = ItemCardBinding.inflate(getLayoutInflater());
+         itemBinding = ItemCardBinding.inflate(getLayoutInflater());
 
 //        Bind data
         Glide.with(this)
                 .load(item.url)
-                .into(binding.imageView);
-        binding.title.setText(item.label);
-        binding.title.setBackgroundColor(item.color);
+                .into(itemBinding.imageView);
+        itemBinding.title.setText(item.label);
+        itemBinding.title.setBackgroundColor(item.color);
 
 //        add it to the list
-        b.list.addView(binding.getRoot());
-
+        b.list.addView(itemBinding.getRoot());
+        shareItem();
         b.homeTextView.setVisibility(View.GONE);
-
     }
-
 
     /**
      * TO get json for the item
@@ -148,7 +142,6 @@ public class GalleryActivity extends AppCompatActivity {
         return json.toJson(item);
     }
 
-
     /**
      * To get item from json
      * We read back that JSON String and convert it back to the object when we want to read it.
@@ -158,6 +151,42 @@ public class GalleryActivity extends AppCompatActivity {
     private Item jsonToItem(String string){
         Gson json2 = new Gson();
         return json2.fromJson(string, Item.class);
+    }
+
+    public static Bitmap loadBitmapFromView(View v){
+        Bitmap bitmap;
+        v.setDrawingCacheEnabled(true);
+        bitmap = Bitmap.createBitmap(v.getDrawingCache());
+        v.setDrawingCacheEnabled(false);
+        return bitmap;
+    }
+
+    private void shareItem(){
+
+        itemBinding.shareCardButton.setOnClickListener(v -> {
+            Bitmap icon = loadBitmapFromView(b.list);
+
+//                Calling the intent to share the bitmap
+            Intent shareBitmap = new Intent(Intent.ACTION_SEND);
+            shareBitmap.setType("image/jpeg");
+
+            ContentValues values = new ContentValues();
+            values.put(MediaStore.Images.Media.TITLE, "title");
+            values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+            Uri uri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+
+            OutputStream outputStream;
+            try {
+                outputStream = GalleryActivity.this.getContentResolver().openOutputStream(uri);
+                icon.compress(Bitmap.CompressFormat.JPEG, 100, outputStream);
+                outputStream.close();
+            } catch (Exception e) {
+                System.err.println(e.toString());
+            }
+
+            shareBitmap.putExtra(Intent.EXTRA_STREAM, uri);
+            startActivity(Intent.createChooser(shareBitmap, "Share Image"));
+        });
     }
 
 
@@ -177,7 +206,6 @@ public class GalleryActivity extends AppCompatActivity {
         }
     }
 
-
     /**
      * To save the data when the activity is in the paused state
      */
@@ -188,7 +216,6 @@ public class GalleryActivity extends AppCompatActivity {
 //        Putting all the objects in the SharedPreferences
         int itemCount = 0;
         for(Item item : items){
-
 //            Checking for the item
             if(item != null){
 //                increment the index
@@ -208,19 +235,17 @@ public class GalleryActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable  Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if(requestCode == RESULT_LOAD_IMAGE && resultCode == RESULT_OK && null!= data){
+        if(requestCode == RESULT_LOAD_IMAGE && resultCode == RESULT_OK && null != data){
             Uri selectedImage = data.getData();
             String[] filePathColumn = { MediaStore.Images.Media.DATA };
             Cursor cursor = getContentResolver().query(selectedImage, filePathColumn, null,null,null);
             cursor.moveToFirst();
-            int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
-            String picturePath = cursor.getString(columnIndex);
             cursor.close();
             String uri = selectedImage.toString();
 
             new AddFromDevice().show(this, uri, new AddFromDevice.OnCompleteListener() {
                 @Override
-                public void onAddCompleted(Item item) {
+                public void onAddCompleted(Item item){
                     items.add(item);
                     inflateViewForItem(item);
                     b.homeTextView.setVisibility(View.GONE);
@@ -235,7 +260,6 @@ public class GalleryActivity extends AppCompatActivity {
                 }
             });
         }
-
     }
 }
 

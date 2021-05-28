@@ -135,7 +135,7 @@ public class AddImageDialog implements ItemHelper.OnCompleteListener {
                                     OutputStream outputStream;
                                     try {
                                         outputStream = context.getContentResolver().openOutputStream(uri);
-                                        icon.compress(Bitmap.CompressFormat.JPEG, 200, outputStream);
+                                        icon.compress(Bitmap.CompressFormat.JPEG, 100, outputStream);
                                         outputStream.close();
                                     } catch (Exception e) {
                                         System.err.println(e.toString());
