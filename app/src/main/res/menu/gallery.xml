@@ -3,17 +3,24 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
 
+    <item
+        android:id="@+id/searchBtn"
+        android:icon="@drawable/ic_search"
+        android:title="@string/search"
+        app:showAsAction="always"
+        app:actionViewClass="androidx.appcompat.widget.SearchView" />
 
     <item
         android:id="@+id/addFromGallery"
         android:icon="@drawable/ic_add_gallery"
-        android:title="Add Image"
-        app:showAsAction="always"
+        android:title="Add Image from Gallery"
+        app:showAsAction="never"
         />
 
     <item
         android:id="@+id/add_image"
         android:icon="@drawable/ic_add_image"
-        android:title="Add Image"
-        app:showAsAction="always"/>
+        android:title="Add Random Image"
+        app:showAsAction="never"/>
+
 </menu>

@@ -15,4 +15,6 @@
     <string name="Palette_ColorTV">Choose a Palette color</string>
     <string name="LabelTV">Choose a Label</string>
     <string name="Update_and_add_from_Gallery">ADD</string>
+    <string name="no_items_try_adding_from_the_action_above">No items. Try adding from the action above</string>
+    <string name="search">Search</string>
 </resources>

@@ -2,6 +2,8 @@ package com.streamliners.dialog;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SearchView;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import android.annotation.SuppressLint;
 import android.content.ContentValues;
 import android.content.Intent;
@@ -15,9 +17,9 @@ import android.provider.MediaStore;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import com.bumptech.glide.Glide;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.gson.Gson;
+import com.streamliners.dialog.Adapter.ItemAdapter;
 import com.streamliners.dialog.databinding.ActivityGalleryBinding;
 import com.streamliners.dialog.databinding.ItemCardBinding;
 import com.streamliners.dialog.model.Item;
@@ -33,6 +35,12 @@ public class GalleryActivity extends AppCompatActivity {
     SharedPreferences prefs;
     ItemCardBinding itemBinding;
 
+    ItemAdapter adapter;
+
+    /**
+     * It initialises the activity.
+     * @param savedInstanceState : reference to a Bundle object that is passed into the onCreate method of every Android Activity
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -41,10 +49,10 @@ public class GalleryActivity extends AppCompatActivity {
 
         prefs = getPreferences(MODE_PRIVATE);
         getDataFromSharedPreferences();
+
     }
 
 //    Actions Menu Method---------------------------------------------------------------------------
-
     /**
      * To inflate optionsMenu
      * @param menu : Action Menu layout
@@ -53,8 +61,27 @@ public class GalleryActivity extends AppCompatActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.gallery, menu);
+
+        //Search functionality
+        androidx.appcompat.widget.SearchView searchView = (androidx.appcompat.widget.SearchView)menu.findItem(R.id.searchBtn).getActionView();
+
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                adapter.filter(query);
+                return true;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                adapter.filter(newText);
+                return true;
+            }
+        });
+
         return true;
     }
+
 
     /**
      * Handle Click Events
@@ -88,8 +115,7 @@ public class GalleryActivity extends AppCompatActivity {
                     @Override
                     public void onImageAdded(Item item) {
                         items.add(item);
-                        inflateViewForItem(item);
-                        shareItem();
+                        inflateViewForItem(items);
                     }
 
                     @Override
@@ -102,6 +128,20 @@ public class GalleryActivity extends AppCompatActivity {
                 });
     }
 
+    private void inflateViewForItem(List<Item> item){
+        adapter = new ItemAdapter(this, items);
+        b.list.setLayoutManager(new LinearLayoutManager(this));
+        b.list.setAdapter(adapter);
+
+        if (items.isEmpty()) {
+            b.homeTextView.setVisibility(View.VISIBLE);
+        } else {
+            b.homeTextView.setVisibility(View.GONE);
+        }
+    }
+
+
+
     private void addFromGallery() {
         Intent openGallery = new Intent(
                 Intent.ACTION_PICK,
@@ -109,27 +149,6 @@ public class GalleryActivity extends AppCompatActivity {
         startActivityForResult(openGallery, RESULT_LOAD_IMAGE);
     }
 
-    /**
-     * To inflate view for the item
-     * @param item to be added in the gallery activity in a card view
-     */
-    private void inflateViewForItem(Item item) {
-
-//        Inflate Layout
-         itemBinding = ItemCardBinding.inflate(getLayoutInflater());
-
-//        Bind data
-        Glide.with(this)
-                .load(item.url)
-                .into(itemBinding.imageView);
-        itemBinding.title.setText(item.label);
-        itemBinding.title.setBackgroundColor(item.color);
-
-//        add it to the list
-        b.list.addView(itemBinding.getRoot());
-        shareItem();
-        b.homeTextView.setVisibility(View.GONE);
-    }
 
     /**
      * TO get json for the item
@@ -189,7 +208,6 @@ public class GalleryActivity extends AppCompatActivity {
         });
     }
 
-
     /**
      * To get data back from SharedPreferences.
      */
@@ -202,7 +220,7 @@ public class GalleryActivity extends AppCompatActivity {
             Item item = jsonToItem(prefs.getString(Constants.ITEMS + i, ""));
 
             items.add(item);
-            inflateViewForItem(item);
+            inflateViewForItem(items);
         }
     }
 
@@ -244,10 +262,10 @@ public class GalleryActivity extends AppCompatActivity {
             String uri = selectedImage.toString();
 
             new AddFromDevice().show(this, uri, new AddFromDevice.OnCompleteListener() {
-                @Override
+                @Override 
                 public void onAddCompleted(Item item){
                     items.add(item);
-                    inflateViewForItem(item);
+                    inflateViewForItem(items);
                     b.homeTextView.setVisibility(View.GONE);
                 }
 
