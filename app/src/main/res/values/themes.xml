@@ -35,6 +35,8 @@
         <item name="android:itemTextAppearance">@color/design_default_color_primary</item>
     </style>
 
+    <style name="CustomTitleTheme" parent="TextAppearance.MaterialComponents.Headline6"/>
+
     <style name="ShareButton" parent="TextAppearance.AppCompat.Widget.Button">
         <item name="android:textColor">@android:color/white</item>
         <item name="backgroundTint">#2196F3</item>

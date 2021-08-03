@@ -2,6 +2,14 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
-        android:id="@+id/ShareContextMenuBtn"
-        android:title="Share"/>
+        android:id="@+id/editCard"
+        android:title="@string/edit"/>
+
+    <item
+        android:id="@+id/ShareCard"
+        android:title="@string/share"/>
+
+    <item
+        android:id="@+id/deleteCard"
+        android:title="@string/delete"/>
 </menu>

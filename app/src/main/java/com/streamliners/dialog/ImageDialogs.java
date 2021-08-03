@@ -1,45 +1,34 @@
 package com.streamliners.dialog;
 import android.app.Activity;
-import android.content.ContentValues;
 import android.content.Context;
-import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
-import android.graphics.drawable.Drawable;
-import android.net.Uri;
-import android.provider.MediaStore;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.CompoundButton;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 
 import com.bumptech.glide.Glide;
-import com.bumptech.glide.request.target.CustomTarget;
-import com.bumptech.glide.request.transition.Transition;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.streamliners.dialog.databinding.ChipColorBinding;
 import com.streamliners.dialog.databinding.ChipLabelBinding;
-import com.streamliners.dialog.databinding.DialogAddImageBinding;
+import com.streamliners.dialog.databinding.DialogImageOperationsBinding;
 import com.streamliners.dialog.model.Item;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.List;
 import java.util.Set;
 
-public class AddImageDialog implements ItemHelper.OnCompleteListener {
+public class ImageDialogs implements ItemHelper.OnCompleteListener {
     private Context context;
     private OnCompleteListener listener;
-    private DialogAddImageBinding b;
+    private DialogImageOperationsBinding b;
     private Bitmap image;
     private Set<Integer> colors;
     private List<String> labels;
@@ -47,35 +36,62 @@ public class AddImageDialog implements ItemHelper.OnCompleteListener {
     private boolean isCustomLabel;
     private AlertDialog dialog;
     private String imageUrl;
+    private Item item;
 
+    /**
+     * To initializing the dialog
+     * @param context : To show the dialog, context is needed; hence, it is passed.
+     * @param listener : For creating the asynchronous callback
+     */
     void show(Context context, OnCompleteListener listener){
-        this.context = context;
-        this.listener = listener;
 
-//        Inflate Dialogs layout
-         if(context instanceof GalleryActivity){
-             inflater = ((GalleryActivity) context).getLayoutInflater();
-         b = DialogAddImageBinding.inflate(inflater);
-         }
-         else{
-             dialog.dismiss();
-             listener.onError("Cast Exception");
+        if(!initializingDialog(context, listener)){
             return;
-         }
-        //    Create and show dialog
-         dialog = new MaterialAlertDialogBuilder(context, R.style.CustomDialogTheme)
-            .setView(b.getRoot())
-                .show();
+        }
 
          handleDimensionsInput();
 //         Hiding errors for edit text
         hideErrorsForET();
 
-        handleShareImageEvent();
+//        handleShareImageEvent();
     }
 
+    /**
+     * To initializing the dialog
+     * @param context : To show the dialog, context is needed; hence, it is passed.
+     * @param listener : For creating the asynchronous callback
+     * @return boolean true
+     */
+    private boolean initializingDialog(Context context, OnCompleteListener listener){
+        this.context = context;
+        this.listener = listener;
+
+//        Inflate Dialogs layout
+        if(context instanceof GalleryActivity){
+            inflater = ((GalleryActivity) context).getLayoutInflater();
+            b = DialogImageOperationsBinding.inflate(inflater);
+        }
+        else{
+            dialog.dismiss();
+            listener.onError("Cast Exception");
+            return false;
+        }
+
+        //    Create and show dialog
+        dialog = new MaterialAlertDialogBuilder(context, R.style.CustomDialogTheme)
+                .setView(b.getRoot())
+                .show();
+
+        return true;
+    }
+
+
+    //Utils-------------------------------------------------------------------------------------------------
+    /**
+     * For hiding errors of the edit texts
+     */
     private void hideErrorsForET() {
-        b.width.addTextChangedListener(new TextWatcher() {
+        b.widthET.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
 
@@ -83,7 +99,7 @@ public class AddImageDialog implements ItemHelper.OnCompleteListener {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                b.width.setError(null);
+                b.widthET.setError(null);
             }
 
             @Override
@@ -91,7 +107,7 @@ public class AddImageDialog implements ItemHelper.OnCompleteListener {
 
             }
         });
-        b.customLabelInput.getEditText().addTextChangedListener(new TextWatcher() {
+        b.customLabelTIL.getEditText().addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
 
@@ -99,7 +115,7 @@ public class AddImageDialog implements ItemHelper.OnCompleteListener {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                b.customLabelInput.getEditText().setError(null);
+                b.customLabelTIL.getEditText().setError(null);
             }
 
             @Override
@@ -109,7 +125,73 @@ public class AddImageDialog implements ItemHelper.OnCompleteListener {
         });
     }
 
-    private void handleShareImageEvent() {
+    /**
+     * To hide the keyboard
+     */
+    private void hideKeyboard() {
+        InputMethodManager imm = (InputMethodManager) context.getSystemService(Activity.INPUT_METHOD_SERVICE);
+        imm.hideSoftInputFromWindow(b.widthTIL.getWindowToken(), 0);
+    }
+
+    //    Step 1: Input Dimensions----------------------------------------------------------------------
+    /**
+     * To handle user input of dimensions
+     */
+    private void handleDimensionsInput(){
+        b.fetchImgBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+//                    Get Strings from edit text
+                String widthStr = b.widthET.getText().toString().trim()
+                        ,heightStr = b.heightET.getText().toString().trim();
+
+//                    Guard Code
+                if(widthStr.isEmpty() && heightStr.isEmpty()){
+                    b.widthET.setError("Please enter at least one dimension!");
+                    return;
+                }
+//                    UI update
+                b.inputDimensionsRoot.setVisibility(View.GONE);
+                b.progressIndicatorRoot.setVisibility(View.VISIBLE);
+
+//                    Hide Keyboard
+                hideKeyboard();
+
+
+//                    Square Image
+                if(widthStr.isEmpty()){
+                    int height = Integer.parseInt(heightStr);
+                    try {
+                        fetchRandomImage(height);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+                else if(heightStr.isEmpty()){
+                    int width = Integer.parseInt(widthStr);
+                    try {
+                        fetchRandomImage(width);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+//                    Rectangular Image
+                else {
+                    int height = Integer.parseInt(heightStr);
+                    int width = Integer.parseInt(widthStr);
+                    try {
+                        fetchRandomImage(width, height);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                }
+            }
+        });
+    }
+
+    /*private void handleShareImageEvent() {
         b.shareImgBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -158,69 +240,15 @@ public class AddImageDialog implements ItemHelper.OnCompleteListener {
             }
         });
     }
+*/
 
 
-    //    Step 1: Input Dimensions----------------------------------------------------------------------
-    private void handleDimensionsInput(){
-            b.fetchBtn.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-//                    Get Strings from edit text
-                    String widthStr = b.width.getText().toString().trim()
-                            ,heightStr = b.height.getText().toString().trim();
-
-//                    Guard Code
-                    if(widthStr.isEmpty() && heightStr.isEmpty()){
-                        b.widthInputText.setError("Please enter at least one dimension!");
-                        return;
-                    }
-//                    UI update
-                    b.inputDimensionsRoot.setVisibility(View.GONE);
-                    b.progressIndicatorRoot.setVisibility(View.VISIBLE);
-
-//                    Hide Keyboard
-                    hideKeyboard();
-
-
-//                    Square Image
-                    if(widthStr.isEmpty()){
-                        int height = Integer.parseInt(heightStr);
-                        try {
-                            fetchRandomImage(height);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    else if(heightStr.isEmpty()){
-                        int width = Integer.parseInt(widthStr);
-                        try {
-                            fetchRandomImage(width);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-
-//                    Rectangular Image
-                    else {
-                        int height = Integer.parseInt(heightStr);
-                        int width = Integer.parseInt(widthStr);
-                        try {
-                            fetchRandomImage(width, height);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-
-                    }
-                }
-            });
-        }
-
-    private void hideKeyboard() {
-        InputMethodManager imm = (InputMethodManager) context.getSystemService(Activity.INPUT_METHOD_SERVICE);
-        imm.hideSoftInputFromWindow(b.width.getWindowToken(), 0);
-    }
-
-
+    /**
+     * Rectangular Image
+     * @param width of the rectangle
+     * @param height of the rectangle
+     * @throws IOException
+     */
     //    Step 2: Fetching Random Image
 //        For Rectangular image---------------------------------------------------------------------
     private void fetchRandomImage(int width, int height) throws IOException {
@@ -228,17 +256,57 @@ public class AddImageDialog implements ItemHelper.OnCompleteListener {
                 .fetchData(width, height, context,this);
     }
 
+    /**
+     * For Square Image
+     * @param x Side of the square
+     * @throws IOException
+     */
     //    For Square Image
     private void fetchRandomImage(int x) throws IOException {
         new ItemHelper()
                 .fetchData(x, context,this);
     }
 
+    /**
+     * Fetch image from device
+     * @param url Image url
+     * @param context To show the dialog, context is needed; hence, it is passed.
+     * @param listener For creating asynchronous callback.
+     */
+    public void fetchDataFromDevice(String url,Context context,OnCompleteListener listener) throws IOException {
+        this.listener = listener;
+        this.context = context;
+
+        if (context instanceof GalleryActivity) {
+            inflater = ((GalleryActivity) context).getLayoutInflater();
+            b = DialogImageOperationsBinding.inflate(inflater);
+        } else {
+            dialog.dismiss();
+            listener.onError("Cast Exception");
+            return;
+        }
+
+        dialog = new MaterialAlertDialogBuilder(context)
+                .setView(b.getRoot())
+                .show();
+
+        b.inputDimensionsRoot.setVisibility(View.GONE);
+        b.progressSubtitle.setText(R.string.fetching_image);
+        b.progressIndicatorRoot.setVisibility(View.VISIBLE);
+
+        new ItemHelper()
+                .fetchData(url,context,this);
+
+    }
+
+
+
+
 //    Step 3: Show Data-----------------------------------------------------------------------------
     private void showData(String url, Set<Integer> colors, List<String> labels) {
 //      Set url of the image
         this.imageUrl = url;
-        b.dialogImage.setImageBitmap(image);
+        b.imageView.setImageBitmap(image);
         inflateColorChips(colors);
         inflateLabelChips(labels);
         handleCustomDialogInput();
@@ -247,12 +315,36 @@ public class AddImageDialog implements ItemHelper.OnCompleteListener {
 //        Setting image view in binding
         Glide.with(context)
                 .load(url)
-                .into(b.dialogImage);
+                .into(b.imageView);
 
         b.progressIndicatorRoot.setVisibility(View.GONE);
         b.mainRoot.setVisibility(View.VISIBLE);
-        b.customLabelInput.setVisibility(View.GONE);
+        b.customLabelTIL.setVisibility(View.GONE);
 
+    }
+
+    //Handle edit card events----------------------------------------------------------------------------------------
+    public void editFetchImage(Context context, Item item, OnCompleteListener listener){
+        this.imageUrl = item.url;
+        this.item = item;
+
+        if(!initializingDialog(context,listener)){
+            return;
+        }
+
+        b.dialogHeader.setText(R.string.edit_image);
+        b.addBtn.setText(R.string.update);
+        b.progressSubtitle.setText(R.string.loading_image);
+        b.chooseLabelTitle.setText(R.string.choose_a_new_label);
+        b.choosePaletteTitle.setText(R.string.choose_a_new_palette_color);
+        editCard(imageUrl);
+    }
+
+    private void editCard(String imageUrl) {
+        b.inputDimensionsRoot.setVisibility(View.GONE);
+        b.progressIndicatorRoot.setVisibility(View.VISIBLE);
+
+        new ItemHelper().editCard(imageUrl, context,this);
     }
 
     private void handleAddImageEvent() {
@@ -300,7 +392,7 @@ public class AddImageDialog implements ItemHelper.OnCompleteListener {
         binding.getRoot().setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                    b.customLabelInput.setVisibility( isChecked? View.VISIBLE : View.GONE);
+                    b.customLabelTIL.setVisibility( isChecked? View.VISIBLE : View.GONE);
                     isCustomLabel = isChecked;
             }
         });

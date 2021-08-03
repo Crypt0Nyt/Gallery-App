@@ -34,13 +34,7 @@ public class ItemHelper {
     private String redirectUrl;
 
     //    Triggers--------------------------------------------------------------------------------------
-    //    For Square Image
-    void fetchData(int x, Context context, OnCompleteListener listener) throws IOException {
-        this.context = context;
 
-        this.listener = listener;
-        fetchUrl(String.format(squareImageURL, x));
-    }
     //    For Rectangular Image
     void fetchData(int x, int y, Context context, OnCompleteListener listener) throws IOException {
         this.context = context;
@@ -48,7 +42,46 @@ public class ItemHelper {
         this.listener = listener;
         fetchUrl(String.format(rectangularImageURL, x, y));
     }
-//  For Fetching Url--------------------------------------------------------------------------------
+
+    /**
+     * For Square image
+     * @param x side of square
+     * @param context context of the current state of the application
+     *                As Glide needs context, hence we defined it
+     * @param listener  for creating asynchronous callback
+     *                  Listeners are used for any type of asynchronous event
+     *                  in order to implement the code to run when an event occurs
+     */
+    public void fetchData(int x, Context context, OnCompleteListener listener) throws IOException {
+
+        this.context = context;
+        this.listener = listener;
+
+        //...fetch here & when done,
+        //Call listener.onFetched(image, colors, labels);
+
+        fetchUrl(String.format(squareImageURL, x));
+    }
+
+    /**
+     * Fetch data to edit
+     * @param url of image
+     * @param context context of the current state of the application
+     *              As Glide needs context, hence we defined it
+     * @param listener for creating asynchronous callback
+     *                 Listeners are used for any type of asynchronous event
+     *                 in order to implement the code to run when an event occurs
+     */
+    public void fetchData(String url,Context context,OnCompleteListener listener ){
+        this.context = context;
+        this.listener = listener;
+        redirectUrl = url;
+        fetchImage(url);
+    }
+
+
+
+    //  For Fetching Url--------------------------------------------------------------------------------
     void fetchUrl(String url) throws IOException {
         new RedirectURLHelper().fetchRedirectURL(new RedirectURLHelper.OnCompleteListener() {
             @Override
@@ -142,7 +175,29 @@ public class ItemHelper {
                 });
     }
 
-//    Listener--------------------------------------------------------------------------------------
+    public void editCard(String imageUrl, Context context, OnCompleteListener listener) {
+        this.context = context;
+        this.redirectUrl = imageUrl;
+        this.listener = listener;
+        Glide.with(context)
+                .asBitmap()
+                .onlyRetrieveFromCache(true)
+                .load(imageUrl)
+                .into(new CustomTarget<Bitmap>() {
+                    @Override
+                    public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
+                        bitmap = resource;
+                        extractPaletteFromBitmap();
+                    }
+
+                    @Override
+                    public void onLoadCleared(@Nullable Drawable placeholder) {
+
+                    }
+                });
+    }
+
+    //    Listener--------------------------------------------------------------------------------------
     interface OnCompleteListener{
         void onFetched(String url, Set<Integer>colors, List<String> labels);
         void onError(String error);

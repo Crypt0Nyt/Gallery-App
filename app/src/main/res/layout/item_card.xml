@@ -37,20 +37,6 @@
                 android:textStyle="bold"
                 android:padding="8dp"/>
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/shareCardButton"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:background="#2196F3"
-                style="@style/ShareButton"
-                android:drawablePadding="5dp"
-                android:text="Share"
-                android:textStyle="bold"
-                app:icon="@drawable/ic_share_option"
-                app:iconGravity="textStart"
-                app:iconSize="20dp"
-                android:layout_marginTop="3dp"/>
-
         </LinearLayout>
 
     </com.google.android.material.card.MaterialCardView>

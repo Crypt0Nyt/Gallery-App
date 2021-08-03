@@ -1,24 +1,33 @@
 package com.streamliners.dialog.Adapter;
-
 import android.content.Context;
+import android.view.ContextMenu;
+import android.view.GestureDetector;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
+import android.view.View;
 import android.view.ViewGroup;
-
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.bumptech.glide.Glide;
+import com.streamliners.dialog.R;
 import com.streamliners.dialog.databinding.ItemCardBinding;
 import com.streamliners.dialog.model.Item;
-
 import java.util.ArrayList;
 import java.util.List;
 
-public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder> {
+public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder> implements ItemTouchHelperAdapter{
 
-    public final Context context;
-    public final List<Item> allItems;
-    public List<Item> visibleItems;  //?
+    private final Context context;
+    private final List<Item> allItems;
+    public  String url;
+    public int index;
+    public ItemTouchHelper mItemTouchHelper;
+    public int mode;
+    private List<Item> visibleItems;//?
+    public ItemCardBinding itemcardBinding;
+    public List<ItemViewHolder> holderList = new ArrayList<>();
+
 
     /**
      * Constructor
@@ -127,14 +136,36 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
         notifyDataSetChanged();
     }
 
+    public void setListItemAdapterHelper(ItemTouchHelper itemTouchHelper){
+        mItemTouchHelper = itemTouchHelper;
+    }
+
+    @Override
+    public void onItemMove(int fromPosition, int toPosition) {
+        Item fromItem=allItems.get(fromPosition);
+        allItems.remove(fromItem);
+        allItems.add(toPosition,fromItem);
+        visibleItems = allItems;
+        notifyItemMoved(fromPosition, toPosition);
+        
+    }
+
+    @Override
+    public void onItemDelete(int position) {
+
+    }
+
+
     /**
      * This is the inner class which have to make in the RecyclerView parent class.
      * ViewHolder
      * Represent view holder for the recycler view
      */
-    static class ItemViewHolder extends RecyclerView.ViewHolder{
+    public class ItemViewHolder extends RecyclerView.ViewHolder implements View.OnCreateContextMenuListener, View.OnTouchListener, GestureDetector.OnGestureListener {
         //Declare view binding object
         ItemCardBinding b;
+        GestureDetector gestureDetector;
+
 
         /**
          * to give the binding to the holder
@@ -143,8 +174,80 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
         public ItemViewHolder(ItemCardBinding b){
             super(b.getRoot());
             this.b = b;
+            gestureDetector = new GestureDetector(b.getRoot().getContext(),this);
+            eventListenerHandler();
         }
 
+
+        /**
+         * TO handle the events of drag and drop FAB
+         */
+        public void eventListenerHandler() {
+            if(mode == 0){
+                b.imageView.setOnTouchListener(null);
+                b.title.setOnTouchListener(null);
+                b.imageView.setOnCreateContextMenuListener(this);
+                b.title.setOnCreateContextMenuListener(this);
+            }
+            else if( mode == 1){
+                b.imageView.setOnTouchListener(this);
+                b.title.setOnTouchListener(this);
+                b.imageView.setOnCreateContextMenuListener(null);
+                b.title.setOnCreateContextMenuListener(null);
+            }
+        }
+
+
+        @Override
+        public void onCreateContextMenu(ContextMenu contextMenu, View view, ContextMenu.ContextMenuInfo contextMenuInfo) {
+            contextMenu.add(this.getAbsoluteAdapterPosition(), R.id.ShareCard, 0, "Share" );
+            contextMenu.add(this.getAbsoluteAdapterPosition(), R.id.editCard,0,"Edit");
+            contextMenu.add(this.getAbsoluteAdapterPosition(), R.id.deleteCard,0,"Delete");
+             url = allItems.get(this.getAbsoluteAdapterPosition()).url;
+            index = this.getAbsoluteAdapterPosition();
+            itemcardBinding = b;
+        }
+
+        @Override
+        public boolean onDown(MotionEvent motionEvent) {
+            return false;
+        }
+
+        @Override
+        public void onShowPress(MotionEvent motionEvent) {
+
+        }
+
+        @Override
+        public boolean onSingleTapUp(MotionEvent motionEvent) {
+            return false;
+        }
+
+        @Override
+        public boolean onScroll(MotionEvent motionEvent, MotionEvent motionEvent1, float v, float v1) {
+            return false;
+        }
+
+        @Override
+        public void onLongPress(MotionEvent motionEvent) {
+            if(mode == 1)
+                mItemTouchHelper.startDrag(this);
+
+        }
+
+        @Override
+        public boolean onFling(MotionEvent motionEvent, MotionEvent motionEvent1, float v, float v1) {
+            return false;
+        }
+
+        @Override
+        public boolean onTouch(View view, MotionEvent motionEvent) {
+            gestureDetector.onTouchEvent(motionEvent);
+            return true;
+        }
     }
+
+
+
 
 }
